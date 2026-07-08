@@ -173,6 +173,9 @@
   .section-eyebrow::before{content:'// ';color:var(--muted);}
   .section-head h2{font-size:clamp(28px,4vw,42px);font-weight:700;}
   .section-desc{max-width:340px;color:var(--muted);font-size:14px;line-height:1.7;}
+  .section-rig{position:relative;width:160px;height:120px;flex-shrink:0;}
+  .section-rig svg{width:100%;height:100%;display:block;overflow:visible;}
+  @media(max-width:760px){.section-rig{display:none;}}
 
   .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;}
   .about-grid p{font-size:15.5px;line-height:1.8;color:#C3C9D6;margin-bottom:16px;max-width:480px;}
@@ -338,7 +341,9 @@
         <div class="section-eyebrow">02 projects</div>
         <h2>A few things I've built</h2>
       </div>
-      <p class="section-desc"></p>
+      <div class="section-rig">
+        <svg id="projects-graph-svg" viewBox="0 0 320 240"></svg>
+      </div>
     </div>
     <div class="projects">
       <div class="proj-card reveal">
@@ -353,7 +358,7 @@
         <h3>CogneeMLPS</h3>
         <p>Network operations copilot that replaces keyword search with knowledge graph retrieval to deliver explainable, context-aware incident resolution.</p>
         <div class="tags"><span class="tag">Cognee</span><span class="tag">LangGraph</span><span class="tag">pgvector</span><span class="tag">neo4j</span></div>
-        <div class="proj-links"><a href="https://github.com/anurag-23werty/CogneeMLPS_NOC.git">GitHub ↗</a><a href="https://cogneemlps-noc-1.onrender.com/">Live ↗</a></div>
+        <div class="proj-links"><a href="https://github.com/anurag-23werty/CogneeMLPS_NOC.git">GitHub ↗</a><a href="#">Write-up ↗</a></div>
       </div>
       <div class="proj-card reveal">
         <div class="proj-top"><span class="proj-num mono">03</span></div>
@@ -457,10 +462,10 @@
     <div class="cta-final reveal">
       <div class="section-eyebrow">05 contact</div>
       <h2>Let's build something.</h2>
-      <p>Open to internships, collaborations, and the occasional hackathon team.</p>
+      <p>Open to internships, collaborations, and the occasional hackathon team. Replace this with your real inbox.</p>
       <div class="contact-row">
         <a class="btn btn-primary" href="mailto:24110387@outr.ac.in">24110387@outr.ac.in</a>
-        <a class="btn btn-ghost" href="Resume.pdf" download="Resume.pdf">Download resume</a>
+        <a class="btn btn-ghost" href="Anurag_Choudhury_Resume.pdf" download="Anurag_Choudhury_Resume.pdf">Download resume</a>
       </div>
     </div>
     <div class="foot-bottom">
@@ -737,6 +742,70 @@
   try{ initAboutGraph(); }catch(e){ console.warn('about graph init failed', e); }
 
   /* ============================================================
+     2c. PROJECTS SECTION — small rotating wireframe cube, sits
+         in the header row next to "A few things I've built" where
+         empty space used to be. Same custom 3D math, no library.
+  ============================================================ */
+  function initProjectsGraph(){
+    var svg = document.getElementById('projects-graph-svg');
+    if(!svg) return;
+    var proj = {focal:6, pixelScale:42, cx:160, cy:120};
+
+    var lineGroup = svgEl('g', {});
+    var nodeGroup = svgEl('g', {});
+    svg.appendChild(lineGroup);
+    svg.appendChild(nodeGroup);
+
+    var s = 1.7;
+    var raw = [
+      [-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],
+      [-1,-1, 1],[1,-1, 1],[1,1, 1],[-1,1, 1]
+    ];
+    var verts = raw.map(function(v){ return {x:v[0]*s, y:v[1]*s, z:v[2]*s}; });
+    var edges = [
+      [0,1],[1,2],[2,3],[3,0],
+      [4,5],[5,6],[6,7],[7,4],
+      [0,4],[1,5],[2,6],[3,7]
+    ];
+
+    var nodeEls = verts.map(function(){ return svgEl('circle', {r:3, fill:'#FF5B9E'}); });
+    nodeEls.forEach(function(el){ nodeGroup.appendChild(el); });
+    var lineEls = edges.map(function(){ return svgEl('line', {stroke:'#4D8DFF', 'stroke-width':1, opacity:0.55}); });
+    lineEls.forEach(function(l){ lineGroup.appendChild(l); });
+
+    var rot = 0;
+    var visible = true;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ visible = en.isIntersecting; });
+    }, {threshold:0.05});
+    io.observe(svg);
+
+    function loop(){
+      if(visible){
+        rot += 0.008;
+        var projected = verts.map(function(v){
+          var r1 = rotateY(v, rot);
+          var r2 = rotateX(r1, rot*0.6 + 0.4);
+          return project(r2, proj);
+        });
+        nodeEls.forEach(function(el, i){
+          el.setAttribute('cx', projected[i].x);
+          el.setAttribute('cy', projected[i].y);
+          el.setAttribute('opacity', Math.max(0.4, Math.min(1, projected[i].scale)));
+        });
+        edges.forEach(function(pair, i){
+          var a = projected[pair[0]], b = projected[pair[1]];
+          lineEls[i].setAttribute('x1', a.x); lineEls[i].setAttribute('y1', a.y);
+          lineEls[i].setAttribute('x2', b.x); lineEls[i].setAttribute('y2', b.y);
+        });
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  }
+  try{ initProjectsGraph(); }catch(e){ console.warn('projects graph init failed', e); }
+
+  /* ============================================================
      3. SCROLL REVEALS — independent of 3D, always runs.
   ============================================================ */
   function initReveal(){
@@ -801,3 +870,4 @@
 </script>
 </body>
 </html>
+ 
